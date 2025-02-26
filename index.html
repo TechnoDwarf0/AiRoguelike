@@ -75,7 +75,7 @@
         <h2>Меню</h2>
         <button id="restart-button">Рестарт</button>
         <button id="close-pause-button">Закрыть</button>
-        <p>Правила: Игрок (☻) двигается стрелками. Карта: 12+ комнат (стены #, 9-15x6-12) с коридорами. Собирай $ (золото), ! (зелья), S (мешок), ? (свитки). E — выход на следующий этаж. Бой пошаговый. Уровень растёт с опытом (100 * ур. * 1.5 XP). HP = 0 — возврат в меню. Спальный мешок (одноразовый) восстанавливает HP и ману. Свитки (?) учат заклинаниям. Каждые 3 этажа — большая комната с боссом (15x10). T — торговцы (3 на этаже). 43 врага с уникальными символами, меньше врагов в комнатах. Бестиарий доступен в UI.</p>
+        <p>Правила: Игрок (☻) двигается стрелками. Карта: 12+ комнат (стены #, 9-15x6-12) с коридорами. Собирай $ (золото), ! (зелья), S (мешок), ? (свитки), + (свитки), & (свитки), * (зелья), % (зелья). E — выход на следующий этаж. Бой пошаговый. Уровень растёт с опытом (100 * ур. * 1.5 XP). HP = 0 — возврат в меню. Спальный мешок (одноразовый) восстанавливает HP и ману. Свитки учат заклинаниям. Каждые 3 этажа — большая комната с боссом (15x10). T — торговцы (3 на этаже), более мощное снаряжение в магазине с ростом этажа. 43 врага с уникальными символами, меньше врагов в комнатах. Бестиарий доступен в UI.</p>
     </div>
 
     <!-- Меню инвентаря -->
@@ -172,8 +172,8 @@
             const roomCount = 12;
 
             for (let i = 0; i < roomCount; i++) {
-                const w = Math.floor(Math.random() * 7) + 9; // Ширина 9-15
-                const h = Math.floor(Math.random() * 5) + 6; // Высота 6-12
+                const w = Math.floor(Math.random() * 7) + 9;
+                const h = Math.floor(Math.random() * 5) + 6;
                 const x = Math.floor(Math.random() * (mapWidth - w - 2)) + 1;
                 const y = Math.floor(Math.random() * (mapHeight - h - 2)) + 1;
 
@@ -211,19 +211,8 @@
 
             placeRandom('☺', 4); placeRandom('O', 3); placeRandom('$', 15); 
             placeRandom('!', 8); placeRandom('T', 3); placeRandom('t', 5);
-            placeRandom('S', 3); placeRandom('?', 5);
-            placeRandom('♠', 2); placeRandom('♣', 2); placeRandom('♥', 2);
-            placeRandom('♦', 2); placeRandom('▲', 2); placeRandom('▼', 2);
-            placeRandom('◄', 2); placeRandom('►', 2); placeRandom('★', 2);
-            placeRandom('☆', 2); placeRandom('■', 2); placeRandom('□', 2);
-            placeRandom('◘', 2); placeRandom('○', 2); placeRandom('●', 2);
-            placeRandom('◙', 2); placeRandom('♪', 2); placeRandom('♫', 2);
-            placeRandom('⚀', 1); placeRandom('⚁', 1); placeRandom('⚂', 1);
-            placeRandom('⚃', 1); placeRandom('⚄', 1); placeRandom('⚅', 1);
-            placeRandom('♛', 1); placeRandom('♚', 1);
-            placeRandom('♜', 1); placeRandom('♝', 1); placeRandom('♞', 1);
-            placeRandom('♟', 1); placeRandom('♤', 1); placeRandom('♡', 1);
-            placeRandom('♢', 1); placeRandom('♧', 1);
+            placeRandom('S', 3); placeRandom('?', 5); placeRandom('+', 5); 
+            placeRandom('&', 5); placeRandom('*', 8); placeRandom('%', 8);
             map[rooms[rooms.length-1].centerY][rooms[rooms.length-1].centerX] = 'E';
             player.x = rooms[0].centerX; player.y = rooms[0].centerY;
             console.log('Карта сгенерирована');
@@ -365,7 +354,7 @@
         // Противники
         const enemies = [
             { char: '☺', name: 'Гоблин', hp: 7, attack: () => Math.floor(Math.random() * 4) + 1, art: ' o\n/|\\\n/ \\' },
-            { char: 'O', name: 'Орк', hp: 15, attack: () => Math.floor(Math.random() * 6) + 2, art: ' O\n/|\\\n/ \\' }, // Изменён с ☻ на O
+            { char: 'O', name: 'Орк', hp: 15, attack: () => Math.floor(Math.random() * 6) + 2, art: ' O\n/|\\\n/ \\' },
             { char: '♠', name: 'Скелет', hp: 10, attack: () => Math.floor(Math.random() * 4) + 1, art: ' ☠\n/|\\\n/ \\' },
             { char: '♣', name: 'Зомби', hp: 12, attack: () => Math.floor(Math.random() * 6) + 1, art: ' Z\n/|\\\n/ \\' },
             { char: '♥', name: 'Волк', hp: 8, attack: () => Math.floor(Math.random() * 6) + 2, art: ' w\n/|\\\n/ \\' },
@@ -414,12 +403,20 @@
             weapons: [
                 { name: 'Меч', attack: 2, art: ' /|\n/  ', description: 'Простой меч. Увеличивает урон на 2.' },
                 { name: 'Посох', attack: 1, art: ' |\n |', description: 'Магический посох. Увеличивает урон на 1.' },
-                { name: 'Кинжал', attack: 3, art: ' /|\n  /', description: 'Лёгкий кинжал. Увеличивает урон на 3.' }
+                { name: 'Кинжал', attack: 3, art: ' /|\n  /', description: 'Лёгкий кинжал. Увеличивает урон на 3.' },
+                // Магазинное оружие
+                { name: 'Копьё', attack: 4, basePrice: 40, art: ' /|\n | ', description: 'Копьё. Урон увеличивается с этажом.' },
+                { name: 'Топор', attack: 5, basePrice: 50, art: ' ||\n/| ', description: 'Топор. Урон увеличивается с этажом.' },
+                { name: 'Лук', attack: 3, basePrice: 35, art: ' /|\n/|>', description: 'Лук. Урон увеличивается с этажом.' }
             ],
             armors: [
                 { name: 'Кожаная броня', defense: 2, art: ' ||\n||', description: 'Лёгкая броня. Уменьшает урон на 2.' },
                 { name: 'Магический плащ', defense: 1, art: ' ~\n~ ', description: 'Плащ с магией. Уменьшает урон на 1.' },
-                { name: 'Латы', defense: 4, art: '//\\\\\n||', description: 'Тяжёлая броня. Уменьшает урон на 4.' }
+                { name: 'Латы', defense: 4, art: '//\\\\\n||', description: 'Тяжёлая броня. Уменьшает урон на 4.' },
+                // Магазинная броня
+                { name: 'Щит', defense: 3, basePrice: 30, art: ' ||\n||=', description: 'Щит. Защита увеличивается с этажом.' },
+                { name: 'Кольчуга', defense: 5, basePrice: 50, art: ' ||\n||*', description: 'Кольчуга. Защита увеличивается с этажом.' },
+                { name: 'Пластинчатая броня', defense: 6, basePrice: 60, art: ' ||\n||#', description: 'Пластинчатая броня. Защита увеличивается с этажом.' }
             ]
         };
 
@@ -429,7 +426,9 @@
             'Зелье маны': { art: ' ~\n| |', description: 'Восстанавливает 20 маны.', effect: () => player.mana = Math.min(player.mana + 20, player.maxMana) },
             'Свиток Огненного шара': { art: ' ?\n||', description: 'Добавляет заклинание "Огненный шар" в способности.', effect: () => learnSpell('Огненный шар') },
             'Свиток Ледяной стрелы': { art: ' +\n||', description: 'Добавляет заклинание "Ледяная стрела" в способности.', effect: () => learnSpell('Ледяная стрела') },
-            'Свиток Невидимости': { art: ' &\n||', description: 'Добавляет заклинание "Невидимость" в способности.', effect: () => learnSpell('Невидимость') }
+            'Свиток Невидимости': { art: ' &\n||', description: 'Добавляет заклинание "Невидимость" в способности.', effect: () => learnSpell('Невидимость') },
+            'Зелье силы': { art: ' *\n| |', description: 'Увеличивает силу на 2 навсегда.', effect: () => player.strength += 2 },
+            'Зелье ловкости': { art: ' %\n| |', description: 'Увеличивает ловкость на 2 навсегда.', effect: () => player.dexterity += 2 }
         };
 
         // Заклинания
@@ -480,8 +479,15 @@
                 player.inventory.push('Зелье лечения'); map[player.y][player.x] = '.'; playSound(660, 0.1);
             } else if (tile === 'T') {
                 trader = { 
-                    items: ['Меч', 'Кожаная броня', 'Зелье маны', 'Спальный мешок', 'Свиток Огненного шара'], 
-                    prices: [20, 15, 10, 25, 30] 
+                    items: [
+                        'Меч', 'Кожаная броня', 'Зелье маны', 'Спальный мешок', 'Свиток Огненного шара',
+                        'Копьё', 'Топор', 'Лук', 'Щит', 'Кольчуга', 'Пластинчатая броня'
+                    ], 
+                    prices: [
+                        20, 15, 10, 25, 30,
+                        Math.floor(40 * (1 + floor / 5)), Math.floor(50 * (1 + floor / 5)), Math.floor(35 * (1 + floor / 5)),
+                        Math.floor(30 * (1 + floor / 5)), Math.floor(50 * (1 + floor / 5)), Math.floor(60 * (1 + floor / 5))
+                    ]
                 };
                 showTradeMenu();
             } else if (tile === 't') {
@@ -498,16 +504,18 @@
                 generateMap();
                 console.log(`Вы спустились на этаж ${floor}!`);
                 playSound(770, 0.3);
-            } else if (tile === '?' || tile === '+' || tile === '&') {
-                const scrolls = {
+            } else if (['?', '+', '&', '*', '%'].includes(tile)) {
+                const scrollsAndPotions = {
                     '?': 'Свиток Огненного шара',
                     '+': 'Свиток Ледяной стрелы',
-                    '&': 'Свиток Невидимости'
+                    '&': 'Свиток Невидимости',
+                    '*': 'Зелье силы',
+                    '%': 'Зелье ловкости'
                 };
-                const scroll = scrolls[tile];
-                player.inventory.push(scroll);
+                const item = scrollsAndPotions[tile];
+                player.inventory.push(item);
                 map[player.y][player.x] = '.';
-                console.log(`Вы нашли ${scroll}!`);
+                console.log(`Вы нашли ${item}!`);
                 playSound(660, 0.1);
             }
         }
@@ -563,7 +571,7 @@
                 } else {
                     log += 'Не удалось сбежать!\n';
                 }
-            } else if (action === 'Использовать меч' || action === 'Использовать кинжал') {
+            } else if (action === 'Использовать меч' || action === 'Использовать кинжал' || action === 'Использовать копьё' || action === 'Использовать топор' || action === 'Использовать лук') {
                 const roll = Math.floor(Math.random() * 20) + 1 + player.attackBonus + Math.floor(player.strength / 5);
                 if (roll > 10 + Math.floor(currentEnemy.hp / 10)) {
                     damage = Math.floor(Math.random() * 6) + 1 + (player.weapon ? player.weapon.attack : 0) + Math.floor(player.strength / 5);
@@ -675,7 +683,7 @@
             const invButtons = document.getElementById('inventory-buttons');
             let list = 'Инвентарь:\n';
             player.inventory.forEach((item, idx) => {
-                list += `${items[item].art}\n${item}\n${items[item].description}\n\n`;
+                list += `${items[item]?.art || equipment.weapons.find(w => w.name === item)?.art || equipment.armors.find(a => a.name === item)?.art}\n${item}\n${items[item]?.description || equipment.weapons.find(w => w.name === item)?.description || equipment.armors.find(a => a.name === item)?.description}\n\n`;
             });
             invList.textContent = list || 'Пусто';
             invButtons.innerHTML = '';
@@ -712,9 +720,11 @@
             let list = 'Снаряжение:\n';
             player.inventory.forEach((item, idx) => {
                 if (equipment.weapons.some(w => w.name === item)) {
-                    list += `${equipment.weapons.find(w => w.name === item).art}\n${item}\n${equipment.weapons.find(w => w.name === item).description}\n\n`;
+                    const weapon = equipment.weapons.find(w => w.name === item);
+                    list += `${weapon.art}\n${item}\n${weapon.description.replace('Урон увеличивается с этажом.', `Урон: ${weapon.attack + Math.floor(floor / 5)}`)}\n\n`;
                 } else if (equipment.armors.some(a => a.name === item)) {
-                    list += `${equipment.armors.find(a => a.name === item).art}\n${item}\n${equipment.armors.find(a => a.name === item).description}\n\n`;
+                    const armor = equipment.armors.find(a => a.name === item);
+                    list += `${armor.art}\n${item}\n${armor.description.replace('Защита увеличивается с этажом.', `Защита: ${armor.defense + Math.floor(floor / 5)}`)}\n\n`;
                 }
             });
             eqList.textContent = list || 'Нет подходящих предметов';
@@ -725,13 +735,18 @@
                     btn.textContent = `Надеть ${item}`;
                     btn.onclick = () => {
                         if (equipment.weapons.some(w => w.name === item)) {
-                            player.weapon = equipment.weapons.find(w => w.name === item);
+                            const weapon = equipment.weapons.find(w => w.name === item);
+                            player.weapon = { ...weapon, attack: weapon.attack + Math.floor(floor / 5) };
                             player.inventory.splice(idx, 1);
                             console.log(`Вы экипировали ${item}`);
                             if (player.class === 'warrior') player.abilities[0] = 'Использовать меч';
                             if (player.class === 'thief') player.abilities[0] = 'Использовать кинжал';
+                            if (item === 'Копьё') player.abilities[0] = 'Использовать копьё';
+                            if (item === 'Топор') player.abilities[0] = 'Использовать топор';
+                            if (item === 'Лук') player.abilities[0] = 'Использовать лук';
                         } else if (equipment.armors.some(a => a.name === item)) {
-                            player.armor = equipment.armors.find(a => a.name === item);
+                            const armor = equipment.armors.find(a => a.name === item);
+                            player.armor = { ...armor, defense: armor.defense + Math.floor(floor / 5) };
                             player.inventory.splice(idx, 1);
                             console.log(`Вы экипировали ${item}`);
                         }
@@ -752,7 +767,10 @@
             let list = 'Торговец:\n';
             trader.items.forEach((item, idx) => {
                 const art = items[item]?.art || (equipment.weapons.some(w => w.name === item) ? equipment.weapons.find(w => w.name === item).art : equipment.armors.find(a => a.name === item)?.art) || ' ?';
-                const desc = items[item]?.description || (equipment.weapons.some(w => w.name === item) ? equipment.weapons.find(w => w.name === item).description : equipment.armors.find(a => a.name === item)?.description) || '';
+                const desc = items[item]?.description || 
+                             (equipment.weapons.some(w => w.name === item) ? 
+                             `${equipment.weapons.find(w => w.name === item).description.replace('Урон увеличивается с этажом.', `Урон: ${equipment.weapons.find(w => w.name === item).attack + Math.floor(floor / 5)}`)}` : 
+                             `${equipment.armors.find(a => a.name === item).description.replace('Защита увеличивается с этажом.', `Защита: ${equipment.armors.find(a => a.name === item).defense + Math.floor(floor / 5)}`)}`);
                 list += `${art}\n${item} - ${trader.prices[idx]} золота\n${desc}\n\n`;
             });
             tradeList.textContent = list;
