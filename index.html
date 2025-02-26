@@ -14,6 +14,7 @@
         #volume { margin-top: 10px; }
         .menu-box { position: absolute; top: 50px; left: 50px; background: #000; border: 2px solid #0f0; padding: 10px; }
         #bestiary-menu { width: 600px; }
+        #trade-menu { width: 700px; } /* Увеличено для продажи */
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #0f0; padding: 5px; text-align: left; }
         th { background: #0f0; color: #000; }
@@ -75,7 +76,7 @@
         <h2>Меню</h2>
         <button id="restart-button">Рестарт</button>
         <button id="close-pause-button">Закрыть</button>
-        <p>Правила: Игрок (☻) двигается стрелками. Карта: 12+ комнат (стены #, 9-15x6-12) с коридорами. Собирай $ (золото), ! (зелья), S (мешок), ? (свитки), + (свитки), & (свитки), * (зелья), % (зелья). E — выход на следующий этаж. Бой пошаговый. Уровень растёт с опытом (100 * ур. * 1.5 XP). HP = 0 — возврат в меню. Спальный мешок (одноразовый) восстанавливает HP и ману. Свитки учат заклинаниям. Каждые 3 этажа — большая комната с боссом (15x10). T — торговцы (3 на этаже), более мощное снаряжение в магазине с ростом этажа. 43 врага с уникальными символами, меньше врагов в комнатах. Бестиарий доступен в UI.</p>
+        <p>Правила: Игрок (☻) двигается стрелками. Карта: 12+ комнат (стены #, 9-15x6-12) с коридорами. Собирай $ (золото), ! (зелья), S (мешок), ? (свитки), + (свитки), & (свитки), * (зелья), % (зелья). E — выход на следующий этаж. Бой пошаговый. Уровень растёт с опытом (100 * ур. * 1.5 XP). HP = 0 — возврат в меню. Спальный мешок (одноразовый) восстанавливает HP и ману. Свитки учат заклинаниям. Каждые 3 этажа — большая комната с боссом (15x10). T — торговцы (3 на этаже), более мощное снаряжение в магазине с ростом этажа, можно продавать предметы. 43 врага с уникальными символами, меньше врагов в комнатах. Бестиарий доступен в UI.</p>
     </div>
 
     <!-- Меню инвентаря -->
@@ -99,6 +100,9 @@
         <h2>Торговля</h2>
         <pre id="trade-list"></pre>
         <div id="trade-buttons"></div>
+        <h3>Продажа</h3>
+        <pre id="sell-list"></pre>
+        <div id="sell-buttons"></div>
         <button id="close-trade-button">Закрыть</button>
     </div>
 
@@ -401,19 +405,17 @@
         // Оборудование и предметы
         const equipment = {
             weapons: [
-                { name: 'Меч', attack: 2, art: ' /|\n/  ', description: 'Простой меч. Увеличивает урон на 2.' },
-                { name: 'Посох', attack: 1, art: ' |\n |', description: 'Магический посох. Увеличивает урон на 1.' },
-                { name: 'Кинжал', attack: 3, art: ' /|\n  /', description: 'Лёгкий кинжал. Увеличивает урон на 3.' },
-                // Магазинное оружие
+                { name: 'Меч', attack: 2, art: ' /|\n/  ', description: 'Простой меч. Увеличивает урон на 2.', basePrice: 20 },
+                { name: 'Посох', attack: 1, art: ' |\n |', description: 'Магический посох. Увеличивает урон на 1.', basePrice: 15 },
+                { name: 'Кинжал', attack: 3, art: ' /|\n  /', description: 'Лёгкий кинжал. Увеличивает урон на 3.', basePrice: 25 },
                 { name: 'Копьё', attack: 4, basePrice: 40, art: ' /|\n | ', description: 'Копьё. Урон увеличивается с этажом.' },
                 { name: 'Топор', attack: 5, basePrice: 50, art: ' ||\n/| ', description: 'Топор. Урон увеличивается с этажом.' },
                 { name: 'Лук', attack: 3, basePrice: 35, art: ' /|\n/|>', description: 'Лук. Урон увеличивается с этажом.' }
             ],
             armors: [
-                { name: 'Кожаная броня', defense: 2, art: ' ||\n||', description: 'Лёгкая броня. Уменьшает урон на 2.' },
-                { name: 'Магический плащ', defense: 1, art: ' ~\n~ ', description: 'Плащ с магией. Уменьшает урон на 1.' },
-                { name: 'Латы', defense: 4, art: '//\\\\\n||', description: 'Тяжёлая броня. Уменьшает урон на 4.' },
-                // Магазинная броня
+                { name: 'Кожаная броня', defense: 2, art: ' ||\n||', description: 'Лёгкая броня. Уменьшает урон на 2.', basePrice: 15 },
+                { name: 'Магический плащ', defense: 1, art: ' ~\n~ ', description: 'Плащ с магией. Уменьшает урон на 1.', basePrice: 10 },
+                { name: 'Латы', defense: 4, art: '//\\\\\n||', description: 'Тяжёлая броня. Уменьшает урон на 4.', basePrice: 25 },
                 { name: 'Щит', defense: 3, basePrice: 30, art: ' ||\n||=', description: 'Щит. Защита увеличивается с этажом.' },
                 { name: 'Кольчуга', defense: 5, basePrice: 50, art: ' ||\n||*', description: 'Кольчуга. Защита увеличивается с этажом.' },
                 { name: 'Пластинчатая броня', defense: 6, basePrice: 60, art: ' ||\n||#', description: 'Пластинчатая броня. Защита увеличивается с этажом.' }
@@ -421,14 +423,14 @@
         };
 
         const items = {
-            'Зелье лечения': { art: ' !\n| |', description: 'Восстанавливает 10 HP.', effect: () => player.hp = Math.min(player.hp + 10, player.maxHp) },
-            'Спальный мешок': { art: ' --\n||', description: 'Восстанавливает всё HP и ману (одноразовый, вне боя).', effect: () => { player.hp = player.maxHp; player.mana = player.maxMana; } },
-            'Зелье маны': { art: ' ~\n| |', description: 'Восстанавливает 20 маны.', effect: () => player.mana = Math.min(player.mana + 20, player.maxMana) },
-            'Свиток Огненного шара': { art: ' ?\n||', description: 'Добавляет заклинание "Огненный шар" в способности.', effect: () => learnSpell('Огненный шар') },
-            'Свиток Ледяной стрелы': { art: ' +\n||', description: 'Добавляет заклинание "Ледяная стрела" в способности.', effect: () => learnSpell('Ледяная стрела') },
-            'Свиток Невидимости': { art: ' &\n||', description: 'Добавляет заклинание "Невидимость" в способности.', effect: () => learnSpell('Невидимость') },
-            'Зелье силы': { art: ' *\n| |', description: 'Увеличивает силу на 2 навсегда.', effect: () => player.strength += 2 },
-            'Зелье ловкости': { art: ' %\n| |', description: 'Увеличивает ловкость на 2 навсегда.', effect: () => player.dexterity += 2 }
+            'Зелье лечения': { art: ' !\n| |', description: 'Восстанавливает 10 HP.', effect: () => player.hp = Math.min(player.hp + 10, player.maxHp), basePrice: 10 },
+            'Спальный мешок': { art: ' --\n||', description: 'Восстанавливает всё HP и ману (одноразовый, вне боя).', effect: () => { player.hp = player.maxHp; player.mana = player.maxMana; }, basePrice: 25 },
+            'Зелье маны': { art: ' ~\n| |', description: 'Восстанавливает 20 маны.', effect: () => player.mana = Math.min(player.mana + 20, player.maxMana), basePrice: 15 },
+            'Свиток Огненного шара': { art: ' ?\n||', description: 'Добавляет заклинание "Огненный шар" в способности.', effect: () => learnSpell('Огненный шар'), basePrice: 30 },
+            'Свиток Ледяной стрелы': { art: ' +\n||', description: 'Добавляет заклинание "Ледяная стрела" в способности.', effect: () => learnSpell('Ледяная стрела'), basePrice: 30 },
+            'Свиток Невидимости': { art: ' &\n||', description: 'Добавляет заклинание "Невидимость" в способности.', effect: () => learnSpell('Невидимость'), basePrice: 30 },
+            'Зелье силы': { art: ' *\n| |', description: 'Увеличивает силу на 2 навсегда.', effect: () => player.strength += 2, basePrice: 20 },
+            'Зелье ловкости': { art: ' %\n| |', description: 'Увеличивает ловкость на 2 навсегда.', effect: () => player.dexterity += 2, basePrice: 20 }
         };
 
         // Заклинания
@@ -484,7 +486,7 @@
                         'Копьё', 'Топор', 'Лук', 'Щит', 'Кольчуга', 'Пластинчатая броня'
                     ], 
                     prices: [
-                        20, 15, 10, 25, 30,
+                        20, 15, 15, 25, 30,
                         Math.floor(40 * (1 + floor / 5)), Math.floor(50 * (1 + floor / 5)), Math.floor(35 * (1 + floor / 5)),
                         Math.floor(30 * (1 + floor / 5)), Math.floor(50 * (1 + floor / 5)), Math.floor(60 * (1 + floor / 5))
                     ]
@@ -496,7 +498,7 @@
             } else if (tile === 'S') {
                 player.hp = player.maxHp;
                 player.mana = player.maxMana;
-                map[player.y][player.x] = '.'; // Одноразовый спальный мешок
+                map[player.y][player.x] = '.'; 
                 console.log('Вы отдохнули на спальном мешке. HP и мана восстановлены!');
                 playSound(440, 0.5);
             } else if (tile === 'E') {
@@ -764,16 +766,20 @@
             tradeMenu.style.display = 'block';
             const tradeList = document.getElementById('trade-list');
             const tradeButtons = document.getElementById('trade-buttons');
-            let list = 'Торговец:\n';
+            const sellList = document.getElementById('sell-list');
+            const sellButtons = document.getElementById('sell-buttons');
+
+            // Покупка
+            let buyList = 'Покупка у торговца:\n';
             trader.items.forEach((item, idx) => {
                 const art = items[item]?.art || (equipment.weapons.some(w => w.name === item) ? equipment.weapons.find(w => w.name === item).art : equipment.armors.find(a => a.name === item)?.art) || ' ?';
                 const desc = items[item]?.description || 
                              (equipment.weapons.some(w => w.name === item) ? 
                              `${equipment.weapons.find(w => w.name === item).description.replace('Урон увеличивается с этажом.', `Урон: ${equipment.weapons.find(w => w.name === item).attack + Math.floor(floor / 5)}`)}` : 
                              `${equipment.armors.find(a => a.name === item).description.replace('Защита увеличивается с этажом.', `Защита: ${equipment.armors.find(a => a.name === item).defense + Math.floor(floor / 5)}`)}`);
-                list += `${art}\n${item} - ${trader.prices[idx]} золота\n${desc}\n\n`;
+                buyList += `${art}\n${item} - ${trader.prices[idx]} золота\n${desc}\n\n`;
             });
-            tradeList.textContent = list;
+            tradeList.textContent = buyList;
             tradeButtons.innerHTML = '';
             trader.items.forEach((item, idx) => {
                 const btn = document.createElement('button');
@@ -789,6 +795,36 @@
                     }
                 };
                 tradeButtons.appendChild(btn);
+            });
+
+            // Продажа
+            let sellText = 'Продажа торговцу:\n';
+            player.inventory.forEach((item, idx) => {
+                const basePrice = items[item]?.basePrice || equipment.weapons.find(w => w.name === item)?.basePrice || equipment.armors.find(a => a.name === item)?.basePrice || 0;
+                const sellPrice = Math.floor((basePrice * (equipment.weapons.some(w => w.name === item) || equipment.armors.some(a => a.name === item) ? (1 + floor / 5) : 1)) / 2);
+                const art = items[item]?.art || equipment.weapons.find(w => w.name === item)?.art || equipment.armors.find(a => a.name === item)?.art;
+                const desc = items[item]?.description || 
+                             (equipment.weapons.some(w => w.name === item) ? 
+                             `${equipment.weapons.find(w => w.name === item).description.replace('Урон увеличивается с этажом.', `Урон: ${equipment.weapons.find(w => w.name === item).attack + Math.floor(floor / 5)}`)}` : 
+                             `${equipment.armors.find(a => a.name === item).description.replace('Защита увеличивается с этажом.', `Защита: ${equipment.armors.find(a => a.name === item).defense + Math.floor(floor / 5)}`)}`);
+                sellText += `${art}\n${item} - ${sellPrice} золота\n${desc}\n\n`;
+            });
+            sellList.textContent = sellText || 'Нет предметов для продажи';
+            sellButtons.innerHTML = '';
+            player.inventory.forEach((item, idx) => {
+                const basePrice = items[item]?.basePrice || equipment.weapons.find(w => w.name === item)?.basePrice || equipment.armors.find(a => a.name === item)?.basePrice || 0;
+                const sellPrice = Math.floor((basePrice * (equipment.weapons.some(w => w.name === item) || equipment.armors.some(a => a.name === item) ? (1 + floor / 5) : 1)) / 2);
+                const btn = document.createElement('button');
+                btn.textContent = `Продать ${item} (${sellPrice})`;
+                btn.onclick = () => {
+                    player.gold += sellPrice;
+                    player.inventory.splice(idx, 1);
+                    console.log(`Вы продали ${item} за ${sellPrice} золота!`);
+                    playSound(770, 0.1);
+                    showTradeMenu();
+                    render();
+                };
+                sellButtons.appendChild(btn);
             });
         }
 
