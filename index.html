@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ASCII Roguelike D&D</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; margin: 0; }
+        #game, #combat, #menu, #pause-menu, #inventory-menu, #equipment-menu, #trade-menu, #abilities-menu, #bestiary-menu { display: none; }
+        #menu { display: block; padding: 20px; }
+        pre { font-size: 16px; margin: 10px; }
+        #ui, #combat-ui { color: #fff; padding: 10px; }
+        button { margin: 5px; background: #0f0; color: #000; border: 1px solid #0f0; cursor: pointer; }
+        #combat-screen { border: 1px solid #0f0; padding: 10px; }
+        #volume { margin-top: 10px; }
+        .menu-box { position: absolute; top: 50px; left: 50px; background: #000; border: 2px solid #0f0; padding: 10px; }
+        #bestiary-menu { width: 600px; } /* Увеличенная ширина окна бестиария */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #0f0; padding: 5px; text-align: left; }
+        th { background: #0f0; color: #000; }
+    </style>
+</head>
+<body>
+    <!-- Меню создания персонажа -->
+    <div id="menu">
+        <h2>Создание персонажа</h2>
+        <p>Имя: <input id="char-name" type="text" value="Герой"></p>
+        <p>Класс: 
+            <select id="char-class" onchange="updateClassArt()">
+                <option value="warrior">Воин (сила+)</option>
+                <option value="mage">Маг (интеллект+)</option>
+                <option value="thief">Вор (ловкость+)</option>
+            </select>
+        </p>
+        <pre id="class-art">
+ /|\
+ / \
+        </pre>
+        <button id="start-button">Начать игру</button>
+        <div id="volume">
+            <label>Громкость: <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5"></label>
+        </div>
+    </div>
+
+    <!-- Основной игровой экран -->
+    <div id="game">
+        <div id="ui">
+            <p>HP: <span id="hp">20</span> | Мана: <span id="mana">0</span> | Золото: <span id="gold">0</span> | Уровень: <span id="level">1</span> | XP: <span id="xp">0</span> | Этаж: <span id="floor">1</span></p>
+            <p>Сила: <span id="strength">10</span> | Ловкость: <span id="dexterity">10</span> | Интеллект: <span id="intelligence">10</span></p>
+            <p>Оружие: <span id="weapon">Нет</span> | Броня: <span id="armor">Нет</span></p>
+            <button id="pause-button">Меню</button>
+            <button id="inventory-button">Инвентарь</button>
+            <button id="equipment-button">Снаряжение</button>
+            <button id="abilities-button">Способности</button>
+            <button id="bestiary-button">Бестиарий</button>
+        </div>
+        <pre id="game-screen"></pre>
+    </div>
+
+    <!-- Экран боя -->
+    <div id="combat">
+        <div id="combat-ui">
+            <p>Игрок: HP: <span id="combat-hp">20</span> | Мана: <span id="combat-mana">0</span> | Уровень: <span id="combat-level">1</span></p>
+            <p>Враг: <span id="enemy-name"></span> | HP: <span id="enemy-hp"></span> | Урон: <span id="enemy-attack"></span></p>
+            <pre id="enemy-art"></pre>
+            <div id="combat-screen"><pre id="combat-log"></pre></div>
+            <button id="abilities-combat-button">Способности</button>
+            <button id="item-button">Предмет</button>
+            <button id="flee-button">Сбежать</button>
+        </div>
+    </div>
+
+    <!-- Меню паузы -->
+    <div id="pause-menu" class="menu-box">
+        <h2>Меню</h2>
+        <button id="restart-button">Рестарт</button>
+        <button id="close-pause-button">Закрыть</button>
+        <p>Правила: Игрок (☻) двигается стрелками. Карта: 12+ комнат (стены #, 9-15x6-12) с коридорами. Собирай $ (золото), ! (зелья), S (мешок), ? (свитки). E — выход на следующий этаж. Бой пошаговый. Уровень растёт с опытом (100 * ур. * 1.5 XP). HP = 0 — возврат в меню. Спальный мешок (одноразовый) восстанавливает HP и ману. Свитки (?) учат заклинаниям. Каждые 3 этажа — большая комната с боссом (15x10). T — торговцы (3 на этаже). 43 врага с уникальными символами, меньше врагов в комнатах. Бестиарий доступен в UI.</p>
+    </div>
+
+    <!-- Меню инвентаря -->
+    <div id="inventory-menu" class="menu-box">
+        <h2>Инвентарь</h2>
+        <pre id="inventory-list"></pre>
+        <div id="inventory-buttons"></div>
+        <button id="close-inventory-button">Закрыть</button>
+    </div>
+
+    <!-- Меню экипировки -->
+    <div id="equipment-menu" class="menu-box">
+        <h2>Снаряжение</h2>
+        <pre id="equipment-list"></pre>
+        <div id="equipment-buttons"></div>
+        <button id="close-equipment-button">Закрыть</button>
+    </div>
+
+    <!-- Меню торговли -->
+    <div id="trade-menu" class="menu-box">
+        <h2>Торговля</h2>
+        <pre id="trade-list"></pre>
+        <div id="trade-buttons"></div>
+        <button id="close-trade-button">Закрыть</button>
+    </div>
+
+    <!-- Меню способностей -->
+    <div id="abilities-menu" class="menu-box">
+        <h2>Способности</h2>
+        <pre id="abilities-list"></pre>
+        <div id="abilities-buttons"></div>
+        <button id="close-abilities-button">Закрыть</button>
+    </div>
+
+    <!-- Меню бестиария -->
+    <div id="bestiary-menu" class="menu-box">
+        <h2>Бестиарий</h2>
+        <table id="bestiary-table">
+            <thead>
+                <tr>
+                    <th>Иконка</th>
+                    <th>Название</th>
+                    <th>HP</th>
+                    <th>Урон</th>
+                    <th>Арт</th>
+                </tr>
+            </thead>
+            <tbody id="bestiary-list"></tbody>
+        </table>
+        <button id="close-bestiary-button">Закрыть</button>
+    </div>
+
+    <script>
+        console.log('Скрипт начал загрузку');
+
+        // Переменные
+        const menu = document.getElementById('menu');
+        const game = document.getElementById('game');
+        const combat = document.getElementById('combat');
+        const pauseMenu = document.getElementById('pause-menu');
+        const inventoryMenu = document.getElementById('inventory-menu');
+        const equipmentMenu = document.getElementById('equipment-menu');
+        const tradeMenu = document.getElementById('trade-menu');
+        const abilitiesMenu = document.getElementById('abilities-menu');
+        const bestiaryMenu = document.getElementById('bestiary-menu');
+        const gameScreen = document.getElementById('game-screen');
+        const combatLog = document.getElementById('combat-log');
+        let player = { 
+            x: 5, y: 5, char: '☻', hp: 20, maxHp: 20, mana: 0, maxMana: 0, gold: 0, class: null, inventory: [], 
+            abilities: [], weapon: null, armor: null, attackBonus: 0, defense: 0, 
+            level: 1, xp: 0, strength: 10, dexterity: 10, intelligence: 10, defending: false 
+        };
+        let map = [];
+        const mapWidth = 80;
+        const mapHeight = 40;
+        let currentEnemy = null;
+        let trader = null;
+        let floor = 1;
+        let volume = 0.5;
+        let inCombat = false;
+        let audioCtx = null;
+
+        // Генерация карты
+        function generateMap() {
+            console.log('Генерация карты');
+            for (let y = 0; y < mapHeight; y++) {
+                map[y] = [];
+                for (let x = 0; x < mapWidth; x++) {
+                    map[y][x] = '#';
+                }
+            }
+
+            const rooms = [];
+            const roomCount = 12;
+
+            for (let i = 0; i < roomCount; i++) {
+                const w = Math.floor(Math.random() * 7) + 9; // Ширина 9-15
+                const h = Math.floor(Math.random() * 5) + 6; // Высота 6-12
+                const x = Math.floor(Math.random() * (mapWidth - w - 2)) + 1;
+                const y = Math.floor(Math.random() * (mapHeight - h - 2)) + 1;
+
+                if (!rooms.some(r => overlap(r, { x, y, w, h }))) {
+                    rooms.push({ x, y, w, h, centerX: x + Math.floor(w / 2), centerY: y + Math.floor(h / 2) });
+                    for (let ry = y; ry < y + h; ry++) {
+                        for (let rx = x; rx < x + w; rx++) {
+                            if (ry === y || ry === y + h - 1 || rx === x || rx === x + w - 1) map[ry][rx] = '#';
+                            else map[ry][rx] = '.';
+                        }
+                    }
+                }
+            }
+
+            if (floor % 3 === 0) {
+                const bossRoom = { x: 10, y: 10, w: 15, h: 10, centerX: 17, centerY: 15 };
+                rooms.push(bossRoom);
+                for (let ry = bossRoom.y; ry < bossRoom.y + bossRoom.h; ry++) {
+                    for (let rx = bossRoom.x; rx < bossRoom.x + bossRoom.w; rx++) {
+                        if (ry === bossRoom.y || ry === bossRoom.y + bossRoom.h - 1 || rx === bossRoom.x || rx === bossRoom.x + bossRoom.w - 1) map[ry][rx] = '#';
+                        else map[ry][rx] = '.';
+                    }
+                }
+                placeBoss(bossRoom);
+            }
+
+            for (let i = 0; i < rooms.length - 1; i++) {
+                connectRoomsWithWalls(rooms[i], rooms[i + 1]);
+            }
+            for (let i = 0; i < rooms.length; i++) {
+                if (Math.random() > 0.5 && i < rooms.length - 1) {
+                    connectRoomsWithWalls(rooms[i], rooms[Math.floor(Math.random() * (rooms.length - i - 1)) + i + 1]);
+                }
+            }
+
+            placeRandom('☺', 4); placeRandom('☻', 3); placeRandom('$', 15); 
+            placeRandom('!', 8); placeRandom('T', 3); placeRandom('t', 5);
+            placeRandom('S', 3); placeRandom('?', 5);
+            placeRandom('♠', 2); placeRandom('♣', 2); placeRandom('♥', 2);
+            placeRandom('♦', 2); placeRandom('▲', 2); placeRandom('▼', 2);
+            placeRandom('◄', 2); placeRandom('►', 2); placeRandom('★', 2);
+            placeRandom('☆', 2); placeRandom('■', 2); placeRandom('□', 2);
+            placeRandom('◘', 2); placeRandom('○', 2); placeRandom('●', 2);
+            placeRandom('◙', 2); placeRandom('♪', 2); placeRandom('♫', 2);
+            placeRandom('⚀', 1); placeRandom('⚁', 1); placeRandom('⚂', 1);
+            placeRandom('⚃', 1); placeRandom('⚄', 1); placeRandom('⚅', 1);
+            placeRandom('♛', 1); placeRandom('♚', 1);
+            placeRandom('♜', 1); placeRandom('♝', 1); placeRandom('♞', 1);
+            placeRandom('♟', 1); placeRandom('♤', 1); placeRandom('♡', 1);
+            placeRandom('♢', 1); placeRandom('♧', 1);
+            map[rooms[rooms.length-1].centerY][rooms[rooms.length-1].centerX] = 'E';
+            player.x = rooms[0].centerX; player.y = rooms[0].centerY;
+            console.log('Карта сгенерирована');
+        }
+
+        function overlap(r1, r2) {
+            return r1.x < r2.x + r2.w + 2 && r1.x + r1.w + 2 > r2.x && r1.y < r2.y + r2.h + 2 && r1.y + r1.h + 2 > r2.y;
+        }
+
+        function connectRoomsWithWalls(r1, r2) {
+            let x1 = r1.centerX;
+            let y1 = r1.centerY;
+            let x2 = r2.centerX;
+            let y2 = r2.centerY;
+            while (x1 !== x2) {
+                map[y1][x1] = '.';
+                map[y1 - 1][x1] = map[y1 - 1][x1] === '.' ? '.' : '#';
+                map[y1 + 1][x1] = map[y1 + 1][x1] === '.' ? '.' : '#';
+                x1 += x1 < x2 ? 1 : -1;
+            }
+            while (y1 !== y2) {
+                map[y1][x1] = '.';
+                map[y1][x1 - 1] = map[y1][x1 - 1] === '.' ? '.' : '#';
+                map[y1][x1 + 1] = map[y1][x1 + 1] === '.' ? '.' : '#';
+                y1 += y1 < y2 ? 1 : -1;
+            }
+        }
+
+        function placeRandom(char, count) {
+            for (let i = 0; i < count; i++) {
+                let x, y;
+                do { x = Math.floor(Math.random() * mapWidth); y = Math.floor(Math.random() * mapHeight); } 
+                while (map[y][x] !== '.');
+                map[y][x] = char;
+            }
+        }
+
+        function placeBoss(room) {
+            const bossIndex = Math.floor(Math.random() * 8) + 35;
+            const boss = enemies[bossIndex];
+            boss.hp *= 2;
+            map[room.centerY][room.centerX] = enemies[bossIndex].char;
+        }
+
+        // Отрисовка
+        function render() {
+            console.log('Рендеринг');
+            let screen = '';
+            for (let y = 0; y < mapHeight; y++) {
+                for (let x = 0; x < mapWidth; x++) {
+                    screen += (x === player.x && y === player.y) ? player.char : map[y][x];
+                }
+                screen += '\n';
+            }
+            gameScreen.textContent = screen;
+            document.getElementById('hp').textContent = player.hp;
+            document.getElementById('mana').textContent = player.mana;
+            document.getElementById('gold').textContent = player.gold;
+            document.getElementById('level').textContent = player.level;
+            document.getElementById('xp').textContent = player.xp;
+            document.getElementById('floor').textContent = floor;
+            document.getElementById('strength').textContent = player.strength;
+            document.getElementById('dexterity').textContent = player.dexterity;
+            document.getElementById('intelligence').textContent = player.intelligence;
+            document.getElementById('weapon').textContent = player.weapon ? player.weapon.name : 'Нет';
+            document.getElementById('armor').textContent = player.armor ? player.armor.name : 'Нет';
+            if (combat.style.display === 'block' && currentEnemy) {
+                document.getElementById('combat-hp').textContent = player.hp;
+                document.getElementById('combat-mana').textContent = player.mana;
+                document.getElementById('combat-level').textContent = player.level;
+                document.getElementById('enemy-name').textContent = currentEnemy.name;
+                document.getElementById('enemy-hp').textContent = currentEnemy.hp;
+                document.getElementById('enemy-attack').textContent = currentEnemy.attack();
+                document.getElementById('enemy-art').textContent = currentEnemy.art;
+            }
+            console.log('Рендеринг завершён');
+        }
+
+        // Создание персонажа и запуск
+        function startGame() {
+            console.log('Клик по кнопке "Начать игру"');
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+                console.log('AudioContext инициализирован');
+            }
+            player.name = document.getElementById('char-name').value;
+            player.class = document.getElementById('char-class').value;
+            if (player.class === 'warrior') { 
+                player.hp = 30; player.maxHp = 30; player.mana = 0; player.maxMana = 50; 
+                player.abilities = ['Использовать меч', 'Щит']; 
+                player.strength = 14; player.dexterity = 10; player.intelligence = 8; 
+                player.attackBonus = 2; 
+            }
+            if (player.class === 'mage') { 
+                player.hp = 15; player.maxHp = 15; player.mana = 50; player.maxMana = 50; 
+                player.abilities = ['Огненный шар', 'Ледяная стрела']; 
+                player.strength = 8; player.dexterity = 10; player.intelligence = 14; 
+            }
+            if (player.class === 'thief') { 
+                player.hp = 20; player.maxHp = 20; player.mana = 0; player.maxMana = 50; 
+                player.abilities = ['Использовать кинжал', 'Невидимость']; 
+                player.strength = 10; player.dexterity = 14; player.intelligence = 8; 
+                player.attackBonus = 3; 
+            }
+            volume = parseFloat(document.getElementById('volume-slider').value);
+            menu.style.display = 'none';
+            game.style.display = 'block';
+            console.log('Переключение на игровой экран');
+            generateMap();
+            render();
+            console.log('Игра запущена');
+        }
+
+        // Обновление ASCII-арта при выборе класса
+        function updateClassArt() {
+            const classSelect = document.getElementById('char-class').value;
+            const classArt = document.getElementById('class-art');
+            if (classSelect === 'warrior') {
+                classArt.textContent = `
+ /|\\
+ / \\
+/| |\\
+                `;
+            } else if (classSelect === 'mage') {
+                classArt.textContent = `
+  /| 
+ /|\\
+/ /\\
+                `;
+            } else if (classSelect === 'thief') {
+                classArt.textContent = `
+ /| 
+/|\\
+/ \\
+                `;
+            }
+        }
+
+        // Противники
+        const enemies = [
+            { char: '☺', name: 'Гоблин', hp: 7, attack: () => Math.floor(Math.random() * 4) + 1, art: ' o\n/|\\\n/ \\' },
+            { char: '☻', name: 'Орк', hp: 15, attack: () => Math.floor(Math.random() * 6) + 2, art: ' O\n/|\\\n/ \\' },
+            { char: '♠', name: 'Скелет', hp: 10, attack: () => Math.floor(Math.random() * 4) + 1, art: ' ☠\n/|\\\n/ \\' },
+            { char: '♣', name: 'Зомби', hp: 12, attack: () => Math.floor(Math.random() * 6) + 1, art: ' Z\n/|\\\n/ \\' },
+            { char: '♥', name: 'Волк', hp: 8, attack: () => Math.floor(Math.random() * 6) + 2, art: ' w\n/|\\\n/ \\' },
+            { char: '♦', name: 'Бандит', hp: 14, attack: () => Math.floor(Math.random() * 6) + 2, art: ' B\n/|\\\n/ \\' },
+            { char: '▲', name: 'Тролль', hp: 25, attack: () => Math.floor(Math.random() * 8) + 3, art: ' T\n/|\\\n/ \\' },
+            { char: '▼', name: 'Дракон', hp: 50, attack: () => Math.floor(Math.random() * 10) + 5, art: ' D\n/|\\\n/ \\' },
+            { char: '◄', name: 'Минотавр', hp: 30, attack: () => Math.floor(Math.random() * 8) + 4, art: ' M\n/|\\\n/ \\' },
+            { char: '►', name: 'Кобольд', hp: 5, attack: () => Math.floor(Math.random() * 4) + 1, art: ' k\n/|\\\n/ \\' },
+            { char: '★', name: 'Крыса', hp: 3, attack: () => Math.floor(Math.random() * 2) + 1, art: ' r\n~~' },
+            { char: '☆', name: 'Элементаль', hp: 20, attack: () => Math.floor(Math.random() * 6) + 3, art: ' E\n~~~' },
+            { char: '■', name: 'Призрак', hp: 15, attack: () => Math.floor(Math.random() * 4) + 2, art: ' P\n~~~' },
+            { char: '□', name: 'Гарпия', hp: 12, attack: () => Math.floor(Math.random() * 6) + 2, art: ' H\n/|\\\n\\/' },
+            { char: '◘', name: 'Культист', hp: 10, attack: () => Math.floor(Math.random() * 4) + 2, art: ' C\n/|\\\n/ \\' },
+            { char: '○', name: 'Некромант', hp: 18, attack: () => Math.floor(Math.random() * 6) + 3, art: ' N\n/|\\\n/ \\' },
+            { char: '●', name: 'Лич', hp: 40, attack: () => Math.floor(Math.random() * 8) + 4, art: ' L\n/|\\\n/ \\' },
+            { char: '◙', name: 'Вампир', hp: 25, attack: () => Math.floor(Math.random() * 6) + 3, art: ' V\n/|\\\n/ \\' },
+            { char: '♪', name: 'Имп', hp: 6, attack: () => Math.floor(Math.random() * 4) + 1, art: ' i\n/|\\\n/ \\' },
+            { char: '♫', name: 'Фея', hp: 8, attack: () => Math.floor(Math.random() * 4) + 2, art: ' f\n/|\\\n/ \\' },
+            { char: '♜', name: 'Огр', hp: 20, attack: () => Math.floor(Math.random() * 7) + 3, art: ' O\n/|\\\n/ \\' },
+            { char: '♝', name: 'Гидра', hp: 35, attack: () => Math.floor(Math.random() * 9) + 4, art: ' H\n/|\\\n/ \\' },
+            { char: '♞', name: 'Голем', hp: 30, attack: () => Math.floor(Math.random() * 6) + 3, art: ' G\n/|\\\n/ \\' },
+            { char: '♟', name: 'Паук', hp: 10, attack: () => Math.floor(Math.random() * 5) + 2, art: ' s\n/|\\\n/ \\' },
+            { char: '♤', name: 'Медуза', hp: 15, attack: () => Math.floor(Math.random() * 6) + 2, art: ' M\n/|\\\n/ \\' },
+            { char: '♡', name: 'Виверна', hp: 25, attack: () => Math.floor(Math.random() * 8) + 3, art: ' W\n/|\\\n/ \\' },
+            { char: '♢', name: 'Грифон', hp: 20, attack: () => Math.floor(Math.random() * 7) + 3, art: ' G\n/|\\\n/ \\' },
+            { char: '♧', name: 'Сирена', hp: 12, attack: () => Math.floor(Math.random() * 5) + 2, art: ' S\n/|\\\n/ \\' },
+            { char: '⚘', name: 'Трент', hp: 18, attack: () => Math.floor(Math.random() * 6) + 3, art: ' T\n/|\\\n/ \\' },
+            { char: '⚙', name: 'Автоматон', hp: 22, attack: () => Math.floor(Math.random() * 7) + 3, art: ' A\n/|\\\n/ \\' },
+            { char: '⚚', name: 'Банши', hp: 14, attack: () => Math.floor(Math.random() * 5) + 2, art: ' B\n/|\\\n/ \\' },
+            { char: '⚛', name: 'Химера', hp: 28, attack: () => Math.floor(Math.random() * 8) + 4, art: ' C\n/|\\\n/ \\' },
+            { char: '⚜', name: 'Феникс', hp: 20, attack: () => Math.floor(Math.random() * 7) + 3, art: ' F\n/|\\\n/ \\' },
+            { char: '⚝', name: 'Сфинкс', hp: 25, attack: () => Math.floor(Math.random() * 6) + 3, art: ' S\n/|\\\n/ \\' },
+            { char: '⚶', name: 'Кентавр', hp: 18, attack: () => Math.floor(Math.random() * 6) + 3, art: ' K\n/|\\\n/ \\' },
+            { char: '⚀', name: 'Король Гоблинов', hp: 20, attack: () => Math.floor(Math.random() * 6) + 3, art: ' O\n/|\\\n/ \\' },
+            { char: '⚁', name: 'Вождь Орков', hp: 40, attack: () => Math.floor(Math.random() * 8) + 4, art: ' O\n/|\\\n/ \\' },
+            { char: '⚂', name: 'Костяной Лорд', hp: 30, attack: () => Math.floor(Math.random() * 6) + 3, art: ' ☠\n/|\\\n/ \\' },
+            { char: '⚃', name: 'Зомби-Гигант', hp: 35, attack: () => Math.floor(Math.random() * 8) + 3, art: ' Z\n/|\\\n/ \\' },
+            { char: '⚄', name: 'Альфа-Волк', hp: 25, attack: () => Math.floor(Math.random() * 8) + 4, art: ' W\n/|\\\n/ \\' },
+            { char: '⚅', name: 'Главарь Бандитов', hp: 35, attack: () => Math.floor(Math.random() * 8) + 3, art: ' B\n/|\\\n/ \\' },
+            { char: '♛', name: 'Тролль-Король', hp: 60, attack: () => Math.floor(Math.random() * 10) + 5, art: ' T\n/|\\\n/ \\' },
+            { char: '♚', name: 'Древний Дракон', hp: 100, attack: () => Math.floor(Math.random() * 12) + 6, art: ' D\n/|\\\n/ \\' }
+        ];
+
+        // Оборудование и предметы
+        const equipment = {
+            weapons: [
+                { name: 'Меч', attack: 2, art: ' /|\n/  ', description: 'Простой меч. Увеличивает урон на 2.' },
+                { name: 'Посох', attack: 1, art: ' |\n |', description: 'Магический посох. Увеличивает урон на 1.' },
+                { name: 'Кинжал', attack: 3, art: ' /|\n  /', description: 'Лёгкий кинжал. Увеличивает урон на 3.' }
+            ],
+            armors: [
+                { name: 'Кожаная броня', defense: 2, art: ' ||\n||', description: 'Лёгкая броня. Уменьшает урон на 2.' },
+                { name: 'Магический плащ', defense: 1, art: ' ~\n~ ', description: 'Плащ с магией. Уменьшает урон на 1.' },
+                { name: 'Латы', defense: 4, art: '//\\\\\n||', description: 'Тяжёлая броня. Уменьшает урон на 4.' }
+            ]
+        };
+
+        const items = {
+            'Зелье лечения': { art: ' !\n| |', description: 'Восстанавливает 10 HP.', effect: () => player.hp = Math.min(player.hp + 10, player.maxHp) },
+            'Спальный мешок': { art: ' --\n||', description: 'Восстанавливает всё HP и ману (одноразовый, вне боя).', effect: () => { player.hp = player.maxHp; player.mana = player.maxMana; } },
+            'Зелье маны': { art: ' ~\n| |', description: 'Восстанавливает 20 маны.', effect: () => player.mana = Math.min(player.mana + 20, player.maxMana) },
+            'Свиток Огненного шара': { art: ' ?\n||', description: 'Добавляет заклинание "Огненный шар" в способности.', effect: () => learnSpell('Огненный шар') },
+            'Свиток Ледяной стрелы': { art: ' ?\n||', description: 'Добавляет заклинание "Ледяная стрела" в способности.', effect: () => learnSpell('Ледяная стрела') },
+            'Свиток Невидимости': { art: ' ?\n||', description: 'Добавляет заклинание "Невидимость" в способности.', effect: () => learnSpell('Невидимость') }
+        };
+
+        // Заклинания
+        const spells = {
+            'Огненный шар': { manaCost: 10, effect: (enemy) => enemy.hp -= 8 + Math.floor(player.intelligence / 5), description: 'Наносит 8+Инт/5 урона врагу.' },
+            'Ледяная стрела': { manaCost: 8, effect: (enemy) => enemy.hp -= 6 + Math.floor(player.intelligence / 5), description: 'Наносит 6+Инт/5 урона врагу.' },
+            'Невидимость': { manaCost: 15, effect: () => player.defending = true, description: 'Уменьшает урон вдвое на один ход.' }
+        };
+
+        function learnSpell(spellName) {
+            if (!player.abilities.includes(spellName)) {
+                player.abilities.push(spellName);
+                console.log(`Вы выучили заклинание: ${spellName}`);
+            }
+        }
+
+        // Управление
+        document.addEventListener('keydown', (e) => {
+            if (game.style.display === 'block' && pauseMenu.style.display !== 'block') {
+                let newX = player.x, newY = player.y;
+                if (e.key === 'ArrowUp') newY--;
+                if (e.key === 'ArrowDown') newY++;
+                if (e.key === 'ArrowLeft') newX--;
+                if (e.key === 'ArrowRight') newX++;
+                if (map[newY][newX] !== '#') {
+                    player.x = newX; player.y = newY;
+                    checkInteractions();
+                }
+                render();
+            } else if (e.key === 'Escape') {
+                togglePauseMenu();
+            }
+        });
+
+        // Взаимодействия
+        function checkInteractions() {
+            const tile = map[player.y][player.x];
+            if (enemies.some(e => e.char === tile)) {
+                currentEnemy = { ...enemies.find(e => e.char === tile) };
+                currentEnemy.hp += Math.floor(floor / 2);
+                currentEnemy.attackBase = currentEnemy.attack;
+                currentEnemy.attack = () => currentEnemy.attackBase() + Math.floor(floor / 5);
+                startCombat();
+            } else if (tile === '$') {
+                player.gold += 10; map[player.y][player.x] = '.'; playSound(880, 0.05);
+                gainXP(5);
+            } else if (tile === '!') {
+                player.inventory.push('Зелье лечения'); map[player.y][player.x] = '.'; playSound(660, 0.1);
+            } else if (tile === 'T') {
+                trader = { 
+                    items: ['Меч', 'Кожаная броня', 'Зелье маны', 'Спальный мешок', 'Свиток Огненного шара'], 
+                    prices: [20, 15, 10, 25, 30] 
+                };
+                showTradeMenu();
+            } else if (tile === 't') {
+                player.hp -= 5; map[player.y][player.x] = '.'; playSound(220, 0.2);
+                console.log('Ловушка! -5 HP');
+            } else if (tile === 'S') {
+                player.hp = player.maxHp;
+                player.mana = player.maxMana;
+                map[player.y][player.x] = '.'; // Одноразовый спальный мешок
+                console.log('Вы отдохнули на спальном мешке. HP и мана восстановлены!');
+                playSound(440, 0.5);
+            } else if (tile === 'E') {
+                floor++;
+                generateMap();
+                console.log(`Вы спустились на этаж ${floor}!`);
+                playSound(770, 0.3);
+            } else if (tile === '?') {
+                const scrolls = ['Свиток Огненного шара', 'Свиток Ледяной стрелы', 'Свиток Невидимости'];
+                const scroll = scrolls[Math.floor(Math.random() * scrolls.length)];
+                player.inventory.push(scroll);
+                map[player.y][player.x] = '.';
+                console.log(`Вы нашли ${scroll}!`);
+                playSound(660, 0.1);
+            }
+        }
+
+        // Опыт
+        function gainXP(amount) {
+            player.xp += amount;
+            const xpNeeded = 100 * player.level * 1.5;
+            console.log(`Получено ${amount} XP. До следующего уровня: ${Math.round(xpNeeded - player.xp)}/${Math.round(xpNeeded)}`);
+            if (player.xp >= xpNeeded) {
+                player.level++;
+                player.xp -= xpNeeded;
+                player.maxHp += 5;
+                player.hp = player.maxHp;
+                player.maxMana += 5;
+                player.mana = player.maxMana;
+                player.strength += player.class === 'warrior' ? 2 : 1;
+                player.dexterity += player.class === 'thief' ? 2 : 1;
+                player.intelligence += player.class === 'mage' ? 2 : 1;
+                console.log(`Уровень повышен до ${player.level}! Нужно ${Math.round(100 * player.level * 1.5)} XP для следующего уровня.`);
+                playSound(880, 0.3);
+            }
+            render();
+        }
+
+        // Бой
+        function startCombat() {
+            console.log('Начало боя');
+            game.style.display = 'none';
+            combat.style.display = 'block';
+            inCombat = true;
+            player.defending = false;
+            document.getElementById('enemy-name').textContent = currentEnemy.name;
+            document.getElementById('enemy-hp').textContent = currentEnemy.hp;
+            document.getElementById('enemy-attack').textContent = currentEnemy.attack();
+            combatLog.textContent = `Бой начался с ${currentEnemy.name}!\n`;
+            playSound(440, 0.1);
+            render();
+        }
+
+        function combatAction(action) {
+            if (!currentEnemy) return endCombat();
+            let log = combatLog.textContent;
+            let damage = 0;
+
+            if (action === 'flee') {
+                const fleeChance = Math.random() * 20 + Math.floor(player.dexterity / 5);
+                if (fleeChance > 15) {
+                    log += 'Вы успешно сбежали!\n';
+                    playSound(660, 0.1);
+                    endCombat();
+                    return;
+                } else {
+                    log += 'Не удалось сбежать!\n';
+                }
+            } else if (action === 'Использовать меч' || action === 'Использовать кинжал') {
+                const roll = Math.floor(Math.random() * 20) + 1 + player.attackBonus + Math.floor(player.strength / 5);
+                if (roll > 10 + Math.floor(currentEnemy.hp / 10)) {
+                    damage = Math.floor(Math.random() * 6) + 1 + (player.weapon ? player.weapon.attack : 0) + Math.floor(player.strength / 5);
+                    currentEnemy.hp -= damage;
+                    log += `Вы нанесли ${damage} урона!\n`;
+                    playSound(550, 0.1);
+                } else {
+                    log += 'Промах!\n';
+                }
+            } else if (action === 'Щит' || action === 'Невидимость') {
+                player.defending = true;
+                log += `${action === 'Щит' ? 'Вы заняли защитную стойку!' : 'Вы стали невидимы!'}\n`;
+                playSound(660, 0.1);
+                if (action === 'Невидимость' && player.mana >= spells['Невидимость'].manaCost) {
+                    player.mana -= spells['Невидимость'].manaCost;
+                }
+            } else if (spells[action]) {
+                if (player.mana >= spells[action].manaCost) {
+                    player.mana -= spells[action].manaCost;
+                    spells[action].effect(currentEnemy);
+                    log += `Вы использовали ${action}! Урон: ${8 + Math.floor(player.intelligence / 5)}\n`;
+                    playSound(770, 0.1);
+                } else {
+                    log += 'Недостаточно маны!\n';
+                }
+            }
+
+            if (currentEnemy.hp <= 0) {
+                log += `${currentEnemy.name} побеждён!\n`;
+                player.gold += 5 + Math.floor(floor / 2);
+                gainXP(10 + Math.floor(floor * 2));
+                map[player.y][player.x] = '.';
+                endCombat();
+            } else {
+                damage = Math.max(currentEnemy.attack() - (player.armor ? player.armor.defense : 0) - Math.floor(player.dexterity / 10), 1);
+                if (player.defending) {
+                    damage = Math.floor(damage / 2);
+                    log += 'Вы уменьшили урон благодаря защите!\n';
+                    player.defending = false;
+                }
+                player.hp -= damage;
+                log += `${currentEnemy.name} нанёс ${damage} урона!\n`;
+                playSound(330, 0.1);
+                if (player.hp <= 0) {
+                    log += 'Вы погибли!\n';
+                    player.hp = 0;
+                    gameOver();
+                }
+            }
+            combatLog.textContent = log;
+            render();
+        }
+
+        function endCombat() {
+            console.log('Конец боя');
+            combat.style.display = 'none';
+            game.style.display = 'block';
+            inCombat = false;
+            currentEnemy = null;
+            render();
+        }
+
+        function gameOver() {
+            console.log('Игра окончена');
+            combat.style.display = 'none';
+            game.style.display = 'none';
+            menu.style.display = 'block';
+            player = { 
+                x: 5, y: 5, char: '☻', hp: 20, maxHp: 20, mana: 0, maxMana: 0, gold: 0, class: null, inventory: [], 
+                abilities: [], weapon: null, armor: null, attackBonus: 0, defense: 0, 
+                level: 1, xp: 0, strength: 10, dexterity: 10, intelligence: 10, defending: false 
+            };
+            floor = 1;
+            currentEnemy = null;
+            trader = null;
+        }
+
+        // Способности
+        function showAbilities(inCombat = false) {
+            abilitiesMenu.style.display = 'block';
+            const abilitiesList = document.getElementById('abilities-list');
+            const abilitiesButtons = document.getElementById('abilities-buttons');
+            let list = 'Способности:\n';
+            player.abilities.forEach((ability, idx) => {
+                const manaCost = spells[ability] ? ` (${spells[ability].manaCost} маны)` : '';
+                const desc = spells[ability] ? spells[ability].description : ability.includes('Использовать') ? 'Наносит урон врагу.' : 'Уменьшает урон вдвое.';
+                list += `${idx + 1}. ${ability}${manaCost} - ${desc}\n`;
+            });
+            abilitiesList.textContent = list;
+            abilitiesButtons.innerHTML = '';
+            player.abilities.forEach((ability, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = `Использовать ${ability}`;
+                btn.onclick = () => {
+                    if (inCombat && currentEnemy) {
+                        combatAction(ability);
+                    }
+                    abilitiesMenu.style.display = 'none';
+                };
+                abilitiesButtons.appendChild(btn);
+            });
+        }
+
+        // Инвентарь
+        function showInventoryMenu(inCombat = false) {
+            inventoryMenu.style.display = 'block';
+            const invList = document.getElementById('inventory-list');
+            const invButtons = document.getElementById('inventory-buttons');
+            let list = 'Инвентарь:\n';
+            player.inventory.forEach((item, idx) => {
+                list += `${items[item].art}\n${item}\n${items[item].description}\n\n`;
+            });
+            invList.textContent = list || 'Пусто';
+            invButtons.innerHTML = '';
+            player.inventory.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = `Использовать ${item}`;
+                btn.onclick = () => useItem(idx, inCombat);
+                invButtons.appendChild(btn);
+            });
+        }
+
+        function useItem(idx, inCombat) {
+            if (idx >= 0 && idx < player.inventory.length) {
+                const item = player.inventory[idx];
+                if (items[item]) {
+                    items[item].effect();
+                    if (item === 'Зелье лечения' && inCombat) combatLog.textContent += 'Вы восстановили 10 HP!\n';
+                    if (item === 'Спальный мешок' && !inCombat) player.inventory.splice(idx, 1);
+                    else if (item !== 'Спальный мешок') player.inventory.splice(idx, 1);
+                    playSound(660, 0.1);
+                    if (inCombat && (item === 'Зелье лечения' || item === 'Зелье маны')) combatAction('');
+                }
+            }
+            if (inCombat) inventoryMenu.style.display = 'none';
+            else showInventoryMenu(inCombat);
+            render();
+        }
+
+        // Экипировка
+        function showEquipment() {
+            equipmentMenu.style.display = 'block';
+            const eqList = document.getElementById('equipment-list');
+            const eqButtons = document.getElementById('equipment-buttons');
+            let list = 'Снаряжение:\n';
+            player.inventory.forEach((item, idx) => {
+                if (equipment.weapons.some(w => w.name === item)) {
+                    list += `${equipment.weapons.find(w => w.name === item).art}\n${item}\n${equipment.weapons.find(w => w.name === item).description}\n\n`;
+                } else if (equipment.armors.some(a => a.name === item)) {
+                    list += `${equipment.armors.find(a => a.name === item).art}\n${item}\n${equipment.armors.find(a => a.name === item).description}\n\n`;
+                }
+            });
+            eqList.textContent = list || 'Нет подходящих предметов';
+            eqButtons.innerHTML = '';
+            player.inventory.forEach((item, idx) => {
+                if (equipment.weapons.some(w => w.name === item) || equipment.armors.some(a => a.name === item)) {
+                    const btn = document.createElement('button');
+                    btn.textContent = `Надеть ${item}`;
+                    btn.onclick = () => {
+                        if (equipment.weapons.some(w => w.name === item)) {
+                            player.weapon = equipment.weapons.find(w => w.name === item);
+                            player.inventory.splice(idx, 1);
+                            console.log(`Вы экипировали ${item}`);
+                            if (player.class === 'warrior') player.abilities[0] = 'Использовать меч';
+                            if (player.class === 'thief') player.abilities[0] = 'Использовать кинжал';
+                        } else if (equipment.armors.some(a => a.name === item)) {
+                            player.armor = equipment.armors.find(a => a.name === item);
+                            player.inventory.splice(idx, 1);
+                            console.log(`Вы экипировали ${item}`);
+                        }
+                        showEquipment();
+                        render();
+                    };
+                    eqButtons.appendChild(btn);
+                }
+            });
+        }
+
+        // Торговля
+        function showTradeMenu() {
+            if (!trader) return;
+            tradeMenu.style.display = 'block';
+            const tradeList = document.getElementById('trade-list');
+            const tradeButtons = document.getElementById('trade-buttons');
+            let list = 'Торговец:\n';
+            trader.items.forEach((item, idx) => {
+                const art = items[item]?.art || (equipment.weapons.some(w => w.name === item) ? equipment.weapons.find(w => w.name === item).art : equipment.armors.find(a => a.name === item)?.art) || ' ?';
+                const desc = items[item]?.description || (equipment.weapons.some(w => w.name === item) ? equipment.weapons.find(w => w.name === item).description : equipment.armors.find(a => a.name === item)?.description) || '';
+                list += `${art}\n${item} - ${trader.prices[idx]} золота\n${desc}\n\n`;
+            });
+            tradeList.textContent = list;
+            tradeButtons.innerHTML = '';
+            trader.items.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = `Купить ${item} (${trader.prices[idx]})`;
+                btn.onclick = () => {
+                    if (player.gold >= trader.prices[idx]) {
+                        player.gold -= trader.prices[idx];
+                        player.inventory.push(item);
+                        console.log(`Вы купили ${item}!`);
+                        playSound(770, 0.1);
+                        showTradeMenu();
+                        render();
+                    }
+                };
+                tradeButtons.appendChild(btn);
+            });
+        }
+
+        // Бестиарий
+        function showBestiary() {
+            bestiaryMenu.style.display = 'block';
+            const bestiaryList = document.getElementById('bestiary-list');
+            bestiaryList.innerHTML = '';
+            enemies.forEach((enemy) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${enemy.char}</td>
+                    <td>${enemy.name}</td>
+                    <td>${enemy.hp}</td>
+                    <td>${enemy.attack().toString().replace('() => ', '')}</td>
+                    <td><pre>${enemy.art}</pre></td>
+                `;
+                bestiaryList.appendChild(row);
+            });
+            document.getElementById('close-bestiary-button').onclick = () => bestiaryMenu.style.display = 'none';
+        }
+
+        // Пауза
+        function togglePauseMenu() {
+            pauseMenu.style.display = pauseMenu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function restartGame() {
+            console.log('Рестарт игры');
+            game.style.display = 'none';
+            combat.style.display = 'none';
+            pauseMenu.style.display = 'none';
+            menu.style.display = 'block';
+            player = { 
+                x: 5, y: 5, char: '☻', hp: 20, maxHp: 20, mana: 0, maxMana: 0, gold: 0, class: null, inventory: [], 
+                abilities: [], weapon: null, armor: null, attackBonus: 0, defense: 0, 
+                level: 1, xp: 0, strength: 10, dexterity: 10, intelligence: 10, defending: false 
+            };
+            floor = 1;
+            currentEnemy = null;
+            trader = null;
+            updateClassArt(); // Обновляем арт при рестарте
+        }
+
+        // Звуки
+        function playSound(frequency, duration) {
+            if (!audioCtx) return;
+            console.log(`Воспроизведение звука: ${frequency} Гц, ${duration} сек`);
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        // Привязка событий
+        window.onload = function() {
+            console.log('DOM загружен');
+            document.getElementById('start-button').addEventListener('click', startGame);
+            document.getElementById('pause-button').addEventListener('click', togglePauseMenu);
+            document.getElementById('restart-button').addEventListener('click', restartGame);
+            document.getElementById('close-pause-button').addEventListener('click', togglePauseMenu);
+            document.getElementById('inventory-button').addEventListener('click', () => showInventoryMenu(false));
+            document.getElementById('equipment-button').addEventListener('click', showEquipment);
+            document.getElementById('abilities-button').addEventListener('click', () => showAbilities(false));
+            document.getElementById('bestiary-button').addEventListener('click', showBestiary);
+            document.getElementById('abilities-combat-button').addEventListener('click', () => showAbilities(true));
+            document.getElementById('item-button').addEventListener('click', () => showInventoryMenu(true));
+            document.getElementById('flee-button').addEventListener('click', () => combatAction('flee'));
+            document.getElementById('close-inventory-button').addEventListener('click', () => inventoryMenu.style.display = 'none');
+            document.getElementById('close-equipment-button').addEventListener('click', () => equipmentMenu.style.display = 'none');
+            document.getElementById('close-trade-button').addEventListener('click', () => tradeMenu.style.display = 'none');
+            document.getElementById('close-abilities-button').addEventListener('click', () => abilitiesMenu.style.display = 'none');
+            updateClassArt(); // Инициализация арта при загрузке
+            console.log('Инициализация завершена');
+        };
+    </script>
+</body>
+</html>
