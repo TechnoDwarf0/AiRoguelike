@@ -13,7 +13,7 @@
         #combat-screen { border: 1px solid #0f0; padding: 10px; }
         #volume { margin-top: 10px; }
         .menu-box { position: absolute; top: 50px; left: 50px; background: #000; border: 2px solid #0f0; padding: 10px; }
-        #bestiary-menu { width: 600px; } /* Увеличенная ширина окна бестиария */
+        #bestiary-menu { width: 600px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #0f0; padding: 5px; text-align: left; }
         th { background: #0f0; color: #000; }
@@ -34,6 +34,7 @@
         <pre id="class-art">
  /|\
  / \
+/| |\
         </pre>
         <button id="start-button">Начать игру</button>
         <div id="volume">
@@ -208,7 +209,7 @@
                 }
             }
 
-            placeRandom('☺', 4); placeRandom('☻', 3); placeRandom('$', 15); 
+            placeRandom('☺', 4); placeRandom('O', 3); placeRandom('$', 15); 
             placeRandom('!', 8); placeRandom('T', 3); placeRandom('t', 5);
             placeRandom('S', 3); placeRandom('?', 5);
             placeRandom('♠', 2); placeRandom('♣', 2); placeRandom('♥', 2);
@@ -364,7 +365,7 @@
         // Противники
         const enemies = [
             { char: '☺', name: 'Гоблин', hp: 7, attack: () => Math.floor(Math.random() * 4) + 1, art: ' o\n/|\\\n/ \\' },
-            { char: '☻', name: 'Орк', hp: 15, attack: () => Math.floor(Math.random() * 6) + 2, art: ' O\n/|\\\n/ \\' },
+            { char: 'O', name: 'Орк', hp: 15, attack: () => Math.floor(Math.random() * 6) + 2, art: ' O\n/|\\\n/ \\' }, // Изменён с ☻ на O
             { char: '♠', name: 'Скелет', hp: 10, attack: () => Math.floor(Math.random() * 4) + 1, art: ' ☠\n/|\\\n/ \\' },
             { char: '♣', name: 'Зомби', hp: 12, attack: () => Math.floor(Math.random() * 6) + 1, art: ' Z\n/|\\\n/ \\' },
             { char: '♥', name: 'Волк', hp: 8, attack: () => Math.floor(Math.random() * 6) + 2, art: ' w\n/|\\\n/ \\' },
@@ -427,8 +428,8 @@
             'Спальный мешок': { art: ' --\n||', description: 'Восстанавливает всё HP и ману (одноразовый, вне боя).', effect: () => { player.hp = player.maxHp; player.mana = player.maxMana; } },
             'Зелье маны': { art: ' ~\n| |', description: 'Восстанавливает 20 маны.', effect: () => player.mana = Math.min(player.mana + 20, player.maxMana) },
             'Свиток Огненного шара': { art: ' ?\n||', description: 'Добавляет заклинание "Огненный шар" в способности.', effect: () => learnSpell('Огненный шар') },
-            'Свиток Ледяной стрелы': { art: ' ?\n||', description: 'Добавляет заклинание "Ледяная стрела" в способности.', effect: () => learnSpell('Ледяная стрела') },
-            'Свиток Невидимости': { art: ' ?\n||', description: 'Добавляет заклинание "Невидимость" в способности.', effect: () => learnSpell('Невидимость') }
+            'Свиток Ледяной стрелы': { art: ' +\n||', description: 'Добавляет заклинание "Ледяная стрела" в способности.', effect: () => learnSpell('Ледяная стрела') },
+            'Свиток Невидимости': { art: ' &\n||', description: 'Добавляет заклинание "Невидимость" в способности.', effect: () => learnSpell('Невидимость') }
         };
 
         // Заклинания
@@ -497,9 +498,13 @@
                 generateMap();
                 console.log(`Вы спустились на этаж ${floor}!`);
                 playSound(770, 0.3);
-            } else if (tile === '?') {
-                const scrolls = ['Свиток Огненного шара', 'Свиток Ледяной стрелы', 'Свиток Невидимости'];
-                const scroll = scrolls[Math.floor(Math.random() * scrolls.length)];
+            } else if (tile === '?' || tile === '+' || tile === '&') {
+                const scrolls = {
+                    '?': 'Свиток Огненного шара',
+                    '+': 'Свиток Ледяной стрелы',
+                    '&': 'Свиток Невидимости'
+                };
+                const scroll = scrolls[tile];
                 player.inventory.push(scroll);
                 map[player.y][player.x] = '.';
                 console.log(`Вы нашли ${scroll}!`);
@@ -634,6 +639,7 @@
             floor = 1;
             currentEnemy = null;
             trader = null;
+            updateClassArt();
         }
 
         // Способности
@@ -806,7 +812,7 @@
             floor = 1;
             currentEnemy = null;
             trader = null;
-            updateClassArt(); // Обновляем арт при рестарте
+            updateClassArt();
         }
 
         // Звуки
@@ -842,7 +848,7 @@
             document.getElementById('close-equipment-button').addEventListener('click', () => equipmentMenu.style.display = 'none');
             document.getElementById('close-trade-button').addEventListener('click', () => tradeMenu.style.display = 'none');
             document.getElementById('close-abilities-button').addEventListener('click', () => abilitiesMenu.style.display = 'none');
-            updateClassArt(); // Инициализация арта при загрузке
+            updateClassArt();
             console.log('Инициализация завершена');
         };
     </script>
