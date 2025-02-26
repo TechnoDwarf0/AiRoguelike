@@ -14,7 +14,7 @@
         #volume { margin-top: 10px; }
         .menu-box { position: absolute; top: 50px; left: 50px; background: #000; border: 2px solid #0f0; padding: 10px; }
         #bestiary-menu { width: 600px; }
-        #trade-menu { width: 700px; } /* Увеличено для продажи */
+        #trade-menu { width: 700px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #0f0; padding: 5px; text-align: left; }
         th { background: #0f0; color: #000; }
@@ -573,7 +573,7 @@
                 } else {
                     log += 'Не удалось сбежать!\n';
                 }
-            } else if (action === 'Использовать меч' || action === 'Использовать кинжал' || action === 'Использовать копьё' || action === 'Использовать топор' || action === 'Использовать лук') {
+            } else if (action.startsWith('Использовать ') || action === 'Безоружная атака') {
                 const roll = Math.floor(Math.random() * 20) + 1 + player.attackBonus + Math.floor(player.strength / 5);
                 if (roll > 10 + Math.floor(currentEnemy.hp / 10)) {
                     damage = Math.floor(Math.random() * 6) + 1 + (player.weapon ? player.weapon.attack : 0) + Math.floor(player.strength / 5);
@@ -658,23 +658,44 @@
             const abilitiesList = document.getElementById('abilities-list');
             const abilitiesButtons = document.getElementById('abilities-buttons');
             let list = 'Способности:\n';
+
+            // Добавляем атаку в зависимости от оружия
+            const attackAbility = player.weapon ? `Использовать ${player.weapon.name}` : 'Безоружная атака';
+            list += `1. ${attackAbility} - Наносит урон врагу.\n`;
+
+            // Остальные способности
             player.abilities.forEach((ability, idx) => {
-                const manaCost = spells[ability] ? ` (${spells[ability].manaCost} маны)` : '';
-                const desc = spells[ability] ? spells[ability].description : ability.includes('Использовать') ? 'Наносит урон врагу.' : 'Уменьшает урон вдвое.';
-                list += `${idx + 1}. ${ability}${manaCost} - ${desc}\n`;
+                if (!ability.startsWith('Использовать')) { // Исключаем старые атаки
+                    const manaCost = spells[ability] ? ` (${spells[ability].manaCost} маны)` : '';
+                    const desc = spells[ability] ? spells[ability].description : 'Уменьшает урон вдвое.';
+                    list += `${idx + 2}. ${ability}${manaCost} - ${desc}\n`;
+                }
             });
             abilitiesList.textContent = list;
+
             abilitiesButtons.innerHTML = '';
+            const attackBtn = document.createElement('button');
+            attackBtn.textContent = attackAbility;
+            attackBtn.onclick = () => {
+                if (inCombat && currentEnemy) {
+                    combatAction(attackAbility);
+                }
+                abilitiesMenu.style.display = 'none';
+            };
+            abilitiesButtons.appendChild(attackBtn);
+
             player.abilities.forEach((ability, idx) => {
-                const btn = document.createElement('button');
-                btn.textContent = `Использовать ${ability}`;
-                btn.onclick = () => {
-                    if (inCombat && currentEnemy) {
-                        combatAction(ability);
-                    }
-                    abilitiesMenu.style.display = 'none';
-                };
-                abilitiesButtons.appendChild(btn);
+                if (!ability.startsWith('Использовать')) {
+                    const btn = document.createElement('button');
+                    btn.textContent = `Использовать ${ability}`;
+                    btn.onclick = () => {
+                        if (inCombat && currentEnemy) {
+                            combatAction(ability);
+                        }
+                        abilitiesMenu.style.display = 'none';
+                    };
+                    abilitiesButtons.appendChild(btn);
+                }
             });
         }
 
@@ -741,11 +762,8 @@
                             player.weapon = { ...weapon, attack: weapon.attack + Math.floor(floor / 5) };
                             player.inventory.splice(idx, 1);
                             console.log(`Вы экипировали ${item}`);
-                            if (player.class === 'warrior') player.abilities[0] = 'Использовать меч';
-                            if (player.class === 'thief') player.abilities[0] = 'Использовать кинжал';
-                            if (item === 'Копьё') player.abilities[0] = 'Использовать копьё';
-                            if (item === 'Топор') player.abilities[0] = 'Использовать топор';
-                            if (item === 'Лук') player.abilities[0] = 'Использовать лук';
+                            player.abilities = player.abilities.filter(a => !a.startsWith('Использовать') && a !== 'Безоружная атака');
+                            player.abilities.unshift(`Использовать ${item}`);
                         } else if (equipment.armors.some(a => a.name === item)) {
                             const armor = equipment.armors.find(a => a.name === item);
                             player.armor = { ...armor, defense: armor.defense + Math.floor(floor / 5) };
